@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:audio_recorder/screens/recorder/recorder_viewmodel.dart';
+import 'package:audio_recorder/utils/helper.dart';
 import 'package:flutter/material.dart';
 
 class CountdownTimer extends StatefulWidget {
@@ -33,8 +34,7 @@ class _CountdownTimerState extends State<CountdownTimer> {
   @override
   Widget build(BuildContext context) {
     final sec = widget.model.secondsRecorded;
-    final timerText =
-        '${((sec) ~/ 60).toString().padLeft(2, '0')}: ${((sec) % 60).toString().padLeft(2, '0')}';
+    final timerText = Helper.getTimerString(sec);
 
     return Text(timerText);
   }
