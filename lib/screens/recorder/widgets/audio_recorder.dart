@@ -71,13 +71,17 @@ class _AudioRecorderState extends State<AudioRecorder>
 
   void _saveRecording(DraggableDetails? details) {
     AppLogger.print('saved....');
-    if (_isRecordingLockEnabled || !_isRecording) return;
+    if (_isRecordingLockEnabled) return;
+
+    _saveRecordingHelper();
+  }
+
+  void _saveRecordingHelper() {
+    if (!_isRecording) return;
 
     widget.model.stopRecording(true);
     _endRecording();
   }
-
-  void _playPauseRecording() {}
 
   void _enableRecordingLock(data) {
     AppLogger.print('accepted!');
@@ -110,7 +114,7 @@ class _AudioRecorderState extends State<AudioRecorder>
               ),
               CountdownTimer(model: widget.model),
               FloatingActionButton(
-                onPressed: _endRecording,
+                onPressed: _saveRecordingHelper,
                 child: const Icon(Icons.send),
               ),
             ],

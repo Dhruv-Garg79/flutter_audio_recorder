@@ -154,8 +154,8 @@ class _AudioItemState extends State<AudioItem> {
         padding: const EdgeInsets.all(Dimensions.smallMargin),
         child: Icon(
           icon,
-          size: 40,
-          color: Colors.grey,
+          size: Dimensions.iconSize,
+          color: AppColors.lightGrey,
         ),
       ),
     );
