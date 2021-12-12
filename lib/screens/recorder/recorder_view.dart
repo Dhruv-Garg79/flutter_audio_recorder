@@ -27,7 +27,7 @@ class RecorderView extends StatelessWidget {
             image: AssetImage(Images.background),
           ),
         ),
-        child: ViewModelBuilder<RecorderViewModel>.reactive(
+        child: ViewModelBuilder<RecorderViewModel>.nonReactive(
           viewModelBuilder: () => RecorderViewModel(),
           onModelReady: (model) => model.initialize(),
           builder: (context, model, child) => _body(model),
@@ -38,11 +38,13 @@ class RecorderView extends StatelessWidget {
 
   Widget _body(RecorderViewModel model) {
     return Stack(
-      children: const [
-        AudioList(),
+      children: [
+        const AudioList(),
         Align(
           alignment: Alignment.bottomCenter,
-          child: AudioRecorder(),
+          child: AudioRecorder(
+            model: model,
+          ),
         ),
       ],
     );

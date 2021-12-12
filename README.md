@@ -14,5 +14,4 @@ Folder structure:
     3. widgets folder - contains individual UI components which make up view. this is done for readability and performance. so that only required components are rebuild.
 4. theme - contains styling and dimensions related code
 5. utils - helper classes
-
-
+6. widgets - common widgets used throughout the app

@@ -1,10 +1,13 @@
+import 'package:audio_recorder/screens/recorder/recorder_viewmodel.dart';
 import 'package:audio_recorder/theme/app_colors.dart';
 import 'package:audio_recorder/theme/dimensions.dart';
 import 'package:audio_recorder/utils/app_logger.dart';
+import 'package:audio_recorder/widgets/countdown_timer.dart';
 import 'package:flutter/material.dart';
 
 class AudioRecorder extends StatefulWidget {
-  const AudioRecorder({Key? key}) : super(key: key);
+  final RecorderViewModel model;
+  const AudioRecorder({Key? key, required this.model}) : super(key: key);
 
   @override
   _AudioRecorderState createState() => _AudioRecorderState();
@@ -36,9 +39,10 @@ class _AudioRecorderState extends State<AudioRecorder>
     curve: Curves.linear,
   ));
 
-  void _startRecording() {
+  void _startRecording() async {
     if (_isRecording) return;
 
+    widget.model.startRecording();
     AppLogger.print('Recording started...');
     setState(() {
       _isRecording = true;
@@ -59,13 +63,17 @@ class _AudioRecorderState extends State<AudioRecorder>
     _animationController.reverse();
   }
 
-  void _deleteRecording() {
+  void _deleteRecording(data) {
+    AppLogger.print('delete....');
     _endRecording();
+    widget.model.stopRecording(false);
   }
 
   void _saveRecording(DraggableDetails? details) {
-    if (_isRecordingLockEnabled) return;
+    AppLogger.print('saved....');
+    if (_isRecordingLockEnabled || !_isRecording) return;
 
+    widget.model.stopRecording(true);
     _endRecording();
   }
 
@@ -97,13 +105,10 @@ class _AudioRecorderState extends State<AudioRecorder>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               IconButton(
-                onPressed: _deleteRecording,
+                onPressed: () => _deleteRecording(null),
                 icon: const Icon(Icons.delete),
               ),
-              IconButton(
-                onPressed: _playPauseRecording,
-                icon: const Icon(Icons.play_arrow),
-              ),
+              CountdownTimer(model: widget.model),
               FloatingActionButton(
                 onPressed: _endRecording,
                 child: const Icon(Icons.send),
@@ -137,11 +142,34 @@ class _AudioRecorderState extends State<AudioRecorder>
                   feedback: _button(),
                   onDragStarted: _startRecording,
                   onDragEnd: _saveRecording,
-                  child: _isRecording ? SizedBox() : _button(),
+                  child: _isRecording ? const SizedBox() : _button(),
                 ),
               ],
             ),
           ),
+          if (_isRecording)
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: DragTarget<bool>(
+                builder: (context, accepted, rejected) {
+                  return Padding(
+                    padding: const EdgeInsets.all(Dimensions.bigPadding),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        Icon(
+                          Icons.delete,
+                          color: Colors.red,
+                        ),
+                        Text('Cancel')
+                      ],
+                    ),
+                  );
+                },
+                hitTestBehavior: HitTestBehavior.opaque,
+                onAccept: _deleteRecording,
+              ),
+            ),
         ],
       ),
     );
@@ -214,10 +242,11 @@ class _AudioRecorderState extends State<AudioRecorder>
         borderRadius: BorderRadius.circular(Dimensions.borderRadius),
         color: AppColors.grey,
       ),
-      child: const TextField(
+      child: TextField(
         maxLines: 1,
         decoration: InputDecoration(
           border: InputBorder.none,
+          icon: _isRecording ? CountdownTimer(model: widget.model) : null,
         ),
       ),
     );

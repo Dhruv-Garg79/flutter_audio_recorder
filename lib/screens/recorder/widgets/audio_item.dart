@@ -1,9 +1,12 @@
-import 'package:audio_recorder/models/audio_model.dart';
+import 'package:audio_recorder/screens/recorder/recorder_viewmodel.dart';
 import 'package:audio_recorder/theme/dimensions.dart';
 import 'package:flutter/material.dart';
 
 class AudioItem extends StatefulWidget {
-  const AudioItem({required AudioModel audioModel, Key? key}) : super(key: key);
+  final RecorderViewModel model;
+  final int itemIndex;
+
+  const AudioItem({Key? key, required this.model, required this.itemIndex}) : super(key: key);
 
   @override
   _AudioItemState createState() => _AudioItemState();
