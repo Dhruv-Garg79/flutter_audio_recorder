@@ -1,10 +1,7 @@
-import 'dart:io';
-
 import 'package:audio_recorder/models/audio_model.dart';
 import 'package:audio_recorder/utils/app_logger.dart';
 import 'package:audio_recorder/utils/helper.dart';
 import 'package:just_audio/just_audio.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 import 'package:stacked/stacked.dart';
 

@@ -2,7 +2,6 @@ import 'package:audio_recorder/models/audio_model.dart';
 import 'package:audio_recorder/screens/recorder/recorder_viewmodel.dart';
 import 'package:audio_recorder/theme/app_colors.dart';
 import 'package:audio_recorder/theme/dimensions.dart';
-import 'package:audio_recorder/utils/app_logger.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 

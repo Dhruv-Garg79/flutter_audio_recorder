@@ -1,5 +1,3 @@
-import 'package:flutter/material.dart';
-
 class Dimensions {
   static const double smallPadding = 8.0;
   static const double bigPadding = 16.0;

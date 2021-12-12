@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:logger/logger.dart' as Log;
+import 'package:logger/logger.dart' as log;
 
 class AppLogger {
   static final AppLogger _loggerInstance = AppLogger._makeInstance();
@@ -15,8 +15,8 @@ class AppLogger {
     _showLogs = val;
   }
 
-  static final _logger = Log.Logger(
-    printer: Log.PrettyPrinter(
+  static final _logger = log.Logger(
+    printer: log.PrettyPrinter(
       printEmojis: true,
       printTime: false,
       methodCount: 0,

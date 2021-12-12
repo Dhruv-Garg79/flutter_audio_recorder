@@ -1,7 +1,5 @@
 import 'dart:convert';
 
-import 'package:audio_recorder/utils/helper.dart';
-
 class AudioModel {
   final String path;
   final int duration;
