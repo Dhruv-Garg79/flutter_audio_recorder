@@ -15,6 +15,7 @@ class AudioList extends ViewModelWidget<RecorderViewModel> {
         bottom: Dimensions.messageBox,
       ),
       child: ListView.builder(
+        padding: const EdgeInsets.all(Dimensions.mediumMargin),
         itemBuilder: (context, index) => AudioItem(
           audioModel: list[index],
         ),

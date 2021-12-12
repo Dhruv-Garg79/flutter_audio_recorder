@@ -16,10 +16,7 @@ class _AudioItemState extends State<AudioItem> {
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         Card(
-          margin: const EdgeInsets.symmetric(
-            vertical: Dimensions.smallMargin,
-            horizontal: Dimensions.bigMargin,
-          ),
+          margin: const EdgeInsets.only(bottom: Dimensions.mediumMargin),
           child: Padding(
             padding: const EdgeInsets.all(Dimensions.smallPadding),
             child: Row(
