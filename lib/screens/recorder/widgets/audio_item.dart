@@ -2,6 +2,7 @@ import 'package:audio_recorder/models/audio_model.dart';
 import 'package:audio_recorder/screens/recorder/recorder_viewmodel.dart';
 import 'package:audio_recorder/theme/app_colors.dart';
 import 'package:audio_recorder/theme/dimensions.dart';
+import 'package:audio_recorder/utils/app_logger.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 
@@ -89,6 +90,10 @@ class _AudioItemState extends State<AudioItem> {
             final processingState = snapshot.data?.processingState;
             final playing = snapshot.data?.playing == true;
 
+            if (processingState == ProcessingState.completed) {
+              return _iconButton(Icons.replay, _startPlaying);
+            }
+
             if (processingState == ProcessingState.buffering ||
                 processingState == ProcessingState.loading ||
                 processingState == ProcessingState.ready) {
@@ -102,13 +107,33 @@ class _AudioItemState extends State<AudioItem> {
         Expanded(
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               StreamBuilder<Duration>(
                 stream: widget.model.player.positionStream,
                 builder: (context, snapshot) {
-                  final value = (snapshot.data?.inSeconds ?? audio.duration) /
-                      audio.duration;
-                  return _progressBar(value);
+                  final value =
+                      (snapshot.data?.inSeconds ?? audio.duration).toDouble();
+
+                  return SliderTheme(
+                    data: SliderTheme.of(context).copyWith(
+                      trackHeight: 1.0,
+                      overlayShape: SliderComponentShape.noOverlay,
+                    ),
+                    child: Slider(
+                      value: value,
+                      min: 0,
+                      max: audio.duration.toDouble(),
+                      activeColor: AppColors.lightGrey,
+                      inactiveColor: Colors.white,
+                      thumbColor: AppColors.lightGrey,
+                      onChanged: (pos) {
+                        if (pos == pos.toInt()) {
+                          widget.model.seekPlayer(pos.toInt());
+                        }
+                      },
+                    ),
+                  );
                 },
               ),
               const SizedBox(

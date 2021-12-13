@@ -114,6 +114,11 @@ class RecorderViewModel extends BaseViewModel {
     }
   }
 
+  void seekPlayer(int sec) {
+    final duration = Duration(seconds: sec);
+    _player.seek(duration);
+  }
+
   @override
   void dispose() {
     super.dispose();
