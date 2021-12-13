@@ -1,7 +1,10 @@
+import 'dart:io';
+
 import 'package:audio_recorder/models/audio_model.dart';
 import 'package:audio_recorder/utils/app_logger.dart';
 import 'package:audio_recorder/utils/helper.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 import 'package:stacked/stacked.dart';
 
@@ -10,18 +13,50 @@ class RecorderViewModel extends BaseViewModel {
   final _player = AudioPlayer();
   int _lastPlayedIndex = -1;
   int _secondsRecorded = 0;
+  String storagePath = '';
 
   final List<AudioModel> audioFiles = [];
 
   AudioPlayer get player => _player;
 
-  void initialize() {}
+  void initialize() {
+    _loadAllAudios();
+  }
+
+  Future<void> _loadAllAudios() async {
+    if (Platform.isAndroid) {
+      final directory = (await getExternalStorageDirectory())!;
+      storagePath = directory.path;
+
+      if (directory.existsSync()) {
+        final files = directory.listSync();
+        for (FileSystemEntity it in files) {
+          final duration = await _player.setFilePath(it.uri.path);
+          audioFiles.add(AudioModel(
+            path: it.uri.path,
+            isPlaying: false,
+            duration: duration?.inSeconds ?? 0,
+            durationString: Helper.getTimerString(duration?.inSeconds ?? 0),
+          ));
+        }
+
+        _player.stop();
+        notifyListeners();
+      }
+    }
+  }
 
   Future<void> startRecording() async {
     _secondsRecorded = 0;
     final result = await _record.hasPermission();
+
     if (result) {
-      await _record.start();
+      if (Platform.isAndroid) {
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        await _record.start(path: '$storagePath/$timestamp.m4a');
+      } else {
+        await _record.start();
+      }
     }
   }
 
