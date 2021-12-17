@@ -255,4 +255,10 @@ class _AudioRecorderState extends State<AudioRecorder>
       ),
     );
   }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _animationController.dispose();
+  }
 }
