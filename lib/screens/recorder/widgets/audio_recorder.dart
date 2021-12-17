@@ -109,7 +109,7 @@ class _AudioRecorderState extends State<AudioRecorder>
 
     if (!_isRecording ||
         _animationController.isAnimating ||
-        dx + Dimensions.micOffset > _screenWidth ||
+        dx + Dimensions.micSize + Dimensions.smallMargin > _screenWidth ||
         (_positionValueNotifier.value - dx).abs() < 0.5) return;
 
     AppLogger.print(dx);
@@ -162,7 +162,7 @@ class _AudioRecorderState extends State<AudioRecorder>
                       Padding(
                         padding: EdgeInsets.only(
                             left: _isRecording
-                                ? _micPos - Dimensions.micOffset + Dimensions.smallMargin
+                                ? _micPos - Dimensions.micSize
                                 : 0),
                         child: GestureDetector(
                           onLongPress: _startRecording,
