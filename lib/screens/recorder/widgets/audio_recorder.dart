@@ -44,7 +44,7 @@ class _AudioRecorderState extends State<AudioRecorder>
 
   late final Animation<Offset> _horizontalBarAnimation = Tween<Offset>(
     end: Offset.zero,
-    begin: const Offset(1.0, 0.0),
+    begin: const Offset(1.2, 0.0),
   ).animate(CurvedAnimation(
     parent: _animationController,
     curve: Curves.linear,
@@ -79,11 +79,11 @@ class _AudioRecorderState extends State<AudioRecorder>
   void _deleteRecording(data) {
     AppLogger.print('delete....');
     _endRecording();
-    _positionValueNotifier.value = _screenWidth - Dimensions.smallMargin;
+    _positionValueNotifier.value = _screenWidth;
     widget.model.stopRecording(false);
   }
 
-  void _saveRecording(DraggableDetails? details) {
+  void _saveRecording(dynamic details) {
     AppLogger.print('saved....');
     if (_isRecordingLockEnabled) return;
 
@@ -104,9 +104,17 @@ class _AudioRecorderState extends State<AudioRecorder>
     });
   }
 
-  void _onDragMic(DragUpdateDetails details) {
-    _positionValueNotifier.value = details.globalPosition.dx;
-    if (details.globalPosition.dx < _screenWidth * 0.6) {
+  void _onDragMic(LongPressMoveUpdateDetails details) {
+    final dx = details.globalPosition.dx;
+
+    if (!_isRecording ||
+        _animationController.isAnimating ||
+        dx + Dimensions.micOffset > _screenWidth ||
+        (_positionValueNotifier.value - dx).abs() < 0.5) return;
+
+    AppLogger.print(dx);
+    _positionValueNotifier.value = dx;
+    if (dx < _screenWidth * 0.6) {
       _deleteRecording(null);
     }
   }
@@ -114,90 +122,62 @@ class _AudioRecorderState extends State<AudioRecorder>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _positionValueNotifier.value = _screenWidth - Dimensions.smallMargin;
+    _positionValueNotifier.value = _screenWidth;
   }
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(Dimensions.smallMargin),
-      child: _isRecordingLockEnabled ? _lockedRecorder() : _defaultRecorder(),
-    );
-  }
-
-  Widget _lockedRecorder() {
-    return Container(
-      padding: const EdgeInsets.all(Dimensions.smallPadding),
-      color: AppColors.grey,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              IconButton(
-                onPressed: () => _deleteRecording(null),
-                icon: const Icon(Icons.delete),
-              ),
-              CountdownTimer(model: widget.model),
-              FloatingActionButton(
-                onPressed: _saveRecordingHelper,
-                child: const Icon(Icons.send),
-              ),
-            ],
-          )
-        ],
-      ),
-    );
-  }
-
-  Widget _defaultRecorder() {
-    return SizedBox(
-      height: Dimensions.barHeight * 2,
-      child: ValueListenableBuilder<double>(
-        valueListenable: _positionValueNotifier,
-        builder: (context, _micPos, child) {
-          AppLogger.print(_micPos);
-          return Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Positioned(
-                bottom: -(Dimensions.barHeight + Dimensions.mediumMargin) +
-                    (_micPos - _screenWidth),
-                right: 0,
-                child: _lockBar(),
-              ),
-              Container(
-                width: _micPos,
-                child: Align(
+      child: SizedBox(
+        height: Dimensions.barHeight * 2,
+        child: ValueListenableBuilder<double>(
+          valueListenable: _positionValueNotifier,
+          builder: (context, _micPos, child) {
+            AppLogger.print(_micPos);
+            return Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Positioned(
+                  bottom: -(Dimensions.barHeight + Dimensions.mediumMargin) +
+                      (_micPos - _screenWidth),
+                  right: 0,
+                  child: _lockBar(),
+                ),
+                Container(
+                  width: _micPos,
+                  child: Align(
+                    alignment: Alignment.bottomCenter,
+                    child: _cancelBar(),
+                  ),
+                ),
+                Align(
                   alignment: Alignment.bottomCenter,
-                  child: _cancelBar(),
-                ),
-              ),
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: Row(
-                  children: [
-                    if (!_isRecording)
-                      Expanded(
-                        child: _messageBox(),
+                  child: Row(
+                    children: [
+                      if (!_isRecording)
+                        Expanded(
+                          child: _messageBox(),
+                        ),
+                      Padding(
+                        padding: EdgeInsets.only(
+                            left: _isRecording
+                                ? _micPos - Dimensions.micOffset + Dimensions.smallMargin
+                                : 0),
+                        child: GestureDetector(
+                          onLongPress: _startRecording,
+                          onLongPressMoveUpdate: _onDragMic,
+                          onLongPressEnd: _saveRecording,
+                          child: _button(!_isRecording),
+                        ),
                       ),
-                    LongPressDraggable<bool>(
-                      data: true,
-                      axis: Axis.horizontal,
-                      feedback: _button(!_isRecording),
-                      onDragStarted: _startRecording,
-                      onDragEnd: _saveRecording,
-                      onDragUpdate: _onDragMic,
-                      hapticFeedbackOnStart: true,
-                      child: _button(!_isRecording),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          );
-        },
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -214,7 +194,7 @@ class _AudioRecorderState extends State<AudioRecorder>
           color: AppColors.grey,
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          mainAxisAlignment: MainAxisAlignment.start,
           children: [
             Row(
               mainAxisSize: MainAxisSize.min,
@@ -230,27 +210,21 @@ class _AudioRecorderState extends State<AudioRecorder>
               ],
             ),
             const SizedBox(
-              width: 24,
+              width: 50,
             ),
-            Flexible(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: const [
-                  Icon(
-                    Icons.arrow_back_ios,
-                    color: AppColors.lightGrey,
-                    size: 16,
-                  ),
-                  Text(
-                    'Slide to cancel',
-                    style: TextStyle(
-                      color: AppColors.lightGrey,
-                    ),
-                  ),
-                  SizedBox(
-                    width: 80,
-                  ),
-                ],
+            const Icon(
+              Icons.arrow_back_ios,
+              color: AppColors.lightGrey,
+              size: 16,
+            ),
+            const Expanded(
+              child: Text(
+                'Slide to cancel',
+                maxLines: 1,
+                overflow: TextOverflow.visible,
+                style: TextStyle(
+                  color: AppColors.lightGrey,
+                ),
               ),
             ),
           ],
@@ -303,22 +277,18 @@ class _AudioRecorderState extends State<AudioRecorder>
   }
 
   Widget _button(bool show) {
-    return show
-        ? ScaleTransition(
-            scale: _buttonScaleAnimation,
-            child: const CircleAvatar(
-              radius: Dimensions.micSize,
-              backgroundColor: AppColors.primaryColor,
-              child: Icon(
-                Icons.mic,
-                color: Colors.white,
-                size: Dimensions.micSize,
-              ),
-            ),
-          )
-        : const SizedBox(
-            width: Dimensions.micSize * 2,
-          );
+    return ScaleTransition(
+      scale: _buttonScaleAnimation,
+      child: const CircleAvatar(
+        radius: Dimensions.micSize,
+        backgroundColor: AppColors.primaryColor,
+        child: Icon(
+          Icons.mic,
+          color: Colors.white,
+          size: Dimensions.micSize,
+        ),
+      ),
+    );
   }
 
   Widget _messageBox() {
