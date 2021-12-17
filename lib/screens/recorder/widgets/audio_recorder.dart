@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:audio_recorder/screens/recorder/recorder_viewmodel.dart';
 import 'package:audio_recorder/theme/app_colors.dart';
 import 'package:audio_recorder/theme/dimensions.dart';
@@ -79,7 +81,7 @@ class _AudioRecorderState extends State<AudioRecorder>
   void _deleteRecording(data) {
     AppLogger.print('delete....');
     _endRecording();
-    _positionValueNotifier.value = _screenWidth;
+    _positionValueNotifier.value = _screenWidth - Dimensions.micOffset;
     widget.model.stopRecording(false);
   }
 
@@ -105,11 +107,11 @@ class _AudioRecorderState extends State<AudioRecorder>
   }
 
   void _onDragMic(LongPressMoveUpdateDetails details) {
-    final dx = details.globalPosition.dx;
+    final dx =
+        min(details.globalPosition.dx, _screenWidth - Dimensions.micOffset);
 
     if (!_isRecording ||
         _animationController.isAnimating ||
-        dx + Dimensions.micSize + Dimensions.smallMargin > _screenWidth ||
         (_positionValueNotifier.value - dx).abs() < 0.5) return;
 
     AppLogger.print(dx);
@@ -122,7 +124,7 @@ class _AudioRecorderState extends State<AudioRecorder>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _positionValueNotifier.value = _screenWidth;
+    _positionValueNotifier.value = _screenWidth - Dimensions.micOffset;
   }
 
   @override
@@ -161,9 +163,8 @@ class _AudioRecorderState extends State<AudioRecorder>
                         ),
                       Padding(
                         padding: EdgeInsets.only(
-                            left: _isRecording
-                                ? _micPos - Dimensions.micSize
-                                : 0),
+                          left: _isRecording ? _micPos - Dimensions.mediumMargin : 0,
+                        ),
                         child: GestureDetector(
                           onLongPress: _startRecording,
                           onLongPressMoveUpdate: _onDragMic,
