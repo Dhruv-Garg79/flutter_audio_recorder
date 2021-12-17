@@ -2,6 +2,7 @@ import 'package:audio_recorder/screens/recorder/recorder_viewmodel.dart';
 import 'package:audio_recorder/theme/app_colors.dart';
 import 'package:audio_recorder/theme/dimensions.dart';
 import 'package:audio_recorder/utils/app_logger.dart';
+import 'package:audio_recorder/widgets/blink_widget.dart';
 import 'package:audio_recorder/widgets/countdown_timer.dart';
 import 'package:flutter/material.dart';
 
@@ -18,26 +19,38 @@ class _AudioRecorderState extends State<AudioRecorder>
   bool _isRecording = false;
   bool _isRecordingLockEnabled = false;
 
+  late final _screenWidth = MediaQuery.of(context).size.width;
+
   late final AnimationController _animationController = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 500),
   );
 
-  late final Animation<double> _animation =
+  late final Animation<double> _buttonScaleAnimation =
       Tween<double>(begin: 1, end: 1.8).animate(
     CurvedAnimation(
       parent: _animationController,
-      curve: Curves.fastOutSlowIn,
+      curve: Curves.elasticInOut,
     ),
   );
 
-  late final Animation<Offset> _positionAnimation = Tween<Offset>(
+  late final Animation<Offset> _verticalBarAnimation = Tween<Offset>(
     begin: Offset.zero,
     end: const Offset(0.0, -1.2),
   ).animate(CurvedAnimation(
     parent: _animationController,
     curve: Curves.linear,
   ));
+
+  late final Animation<Offset> _horizontalBarAnimation = Tween<Offset>(
+    end: Offset.zero,
+    begin: const Offset(1.0, 0.0),
+  ).animate(CurvedAnimation(
+    parent: _animationController,
+    curve: Curves.linear,
+  ));
+
+  final ValueNotifier<double> _positionValueNotifier = ValueNotifier(0);
 
   void _startRecording() async {
     if (_isRecording) return;
@@ -66,6 +79,7 @@ class _AudioRecorderState extends State<AudioRecorder>
   void _deleteRecording(data) {
     AppLogger.print('delete....');
     _endRecording();
+    _positionValueNotifier.value = _screenWidth - Dimensions.smallMargin;
     widget.model.stopRecording(false);
   }
 
@@ -88,6 +102,19 @@ class _AudioRecorderState extends State<AudioRecorder>
     setState(() {
       _isRecordingLockEnabled = true;
     });
+  }
+
+  void _onDragMic(DragUpdateDetails details) {
+    _positionValueNotifier.value = details.globalPosition.dx;
+    if (details.globalPosition.dx < _screenWidth * 0.6) {
+      _deleteRecording(null);
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _positionValueNotifier.value = _screenWidth - Dimensions.smallMargin;
   }
 
   @override
@@ -127,61 +154,114 @@ class _AudioRecorderState extends State<AudioRecorder>
   Widget _defaultRecorder() {
     return SizedBox(
       height: Dimensions.barHeight * 2,
-      child: Stack(
-        children: [
-          Positioned(
-            bottom: -(Dimensions.barHeight + Dimensions.mediumMargin),
-            right: 0,
-            child: _lockBar(),
-          ),
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: Row(
+      child: ValueListenableBuilder<double>(
+        valueListenable: _positionValueNotifier,
+        builder: (context, _micPos, child) {
+          AppLogger.print(_micPos);
+          return Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned(
+                bottom: -(Dimensions.barHeight + Dimensions.mediumMargin) +
+                    (_micPos - _screenWidth),
+                right: 0,
+                child: _lockBar(),
+              ),
+              Container(
+                width: _micPos,
+                child: Align(
+                  alignment: Alignment.bottomCenter,
+                  child: _cancelBar(),
+                ),
+              ),
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: Row(
+                  children: [
+                    if (!_isRecording)
+                      Expanded(
+                        child: _messageBox(),
+                      ),
+                    LongPressDraggable<bool>(
+                      data: true,
+                      axis: Axis.horizontal,
+                      feedback: _button(!_isRecording),
+                      onDragStarted: _startRecording,
+                      onDragEnd: _saveRecording,
+                      onDragUpdate: _onDragMic,
+                      hapticFeedbackOnStart: true,
+                      child: _button(!_isRecording),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _cancelBar() {
+    return SlideTransition(
+      position: _horizontalBarAnimation,
+      child: Container(
+        margin: const EdgeInsets.all(Dimensions.smallMargin),
+        padding: const EdgeInsets.all(Dimensions.bigPadding),
+        height: Dimensions.chatBox,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(Dimensions.borderRadius),
+          color: AppColors.grey,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Expanded(
-                  child: _messageBox(),
+                const BlinkWidget(
+                  child: Icon(
+                    Icons.mic,
+                    color: Colors.red,
+                  ),
+                  duration: 2000,
                 ),
-                LongPressDraggable<bool>(
-                  data: true,
-                  feedback: _button(),
-                  onDragStarted: _startRecording,
-                  onDragEnd: _saveRecording,
-                  child: _isRecording ? const SizedBox() : _button(),
-                ),
+                CountdownTimer(model: widget.model),
               ],
             ),
-          ),
-          if (_isRecording)
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: DragTarget<bool>(
-                builder: (context, accepted, rejected) {
-                  return Padding(
-                    padding: const EdgeInsets.all(Dimensions.bigPadding),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: const [
-                        Icon(
-                          Icons.delete,
-                          color: Colors.red,
-                        ),
-                        Text('Cancel')
-                      ],
+            const SizedBox(
+              width: 24,
+            ),
+            Flexible(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Icon(
+                    Icons.arrow_back_ios,
+                    color: AppColors.lightGrey,
+                    size: 16,
+                  ),
+                  Text(
+                    'Slide to cancel',
+                    style: TextStyle(
+                      color: AppColors.lightGrey,
                     ),
-                  );
-                },
-                hitTestBehavior: HitTestBehavior.opaque,
-                onAccept: _deleteRecording,
+                  ),
+                  SizedBox(
+                    width: 80,
+                  ),
+                ],
               ),
             ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _lockBar() {
     return SlideTransition(
-      position: _positionAnimation,
+      position: _verticalBarAnimation,
       child: Container(
         margin: const EdgeInsets.all(Dimensions.smallMargin),
         height: Dimensions.barHeight,
@@ -222,19 +302,23 @@ class _AudioRecorderState extends State<AudioRecorder>
     );
   }
 
-  Widget _button() {
-    return ScaleTransition(
-      scale: _animation,
-      child: const CircleAvatar(
-        radius: Dimensions.micSize,
-        backgroundColor: AppColors.primaryColor,
-        child: Icon(
-          Icons.mic,
-          color: Colors.white,
-          size: Dimensions.micSize,
-        ),
-      ),
-    );
+  Widget _button(bool show) {
+    return show
+        ? ScaleTransition(
+            scale: _buttonScaleAnimation,
+            child: const CircleAvatar(
+              radius: Dimensions.micSize,
+              backgroundColor: AppColors.primaryColor,
+              child: Icon(
+                Icons.mic,
+                color: Colors.white,
+                size: Dimensions.micSize,
+              ),
+            ),
+          )
+        : const SizedBox(
+            width: Dimensions.micSize * 2,
+          );
   }
 
   Widget _messageBox() {
@@ -246,19 +330,16 @@ class _AudioRecorderState extends State<AudioRecorder>
         borderRadius: BorderRadius.circular(Dimensions.borderRadius),
         color: AppColors.grey,
       ),
-      child: TextField(
+      child: const TextField(
         maxLines: 1,
-        decoration: InputDecoration(
-          border: InputBorder.none,
-          icon: _isRecording ? CountdownTimer(model: widget.model) : null,
-        ),
+        decoration: InputDecoration(border: InputBorder.none),
       ),
     );
   }
 
   @override
   void dispose() {
-    super.dispose();
     _animationController.dispose();
+    super.dispose();
   }
 }

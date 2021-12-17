@@ -42,7 +42,7 @@ class _BlinkWidgetState extends State<BlinkWidget>
 
   @override
   void dispose() {
-    super.dispose();
     _animationController.dispose();
+    super.dispose();
   }
 }
