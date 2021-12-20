@@ -18,6 +18,7 @@ dependencies:
   record: ^3.0.2
   stacked: ^2.2.5
   stacked_services: ^0.8.13
+  lottie: ^1.2.1
 
 dev_dependencies:
   build_runner: null

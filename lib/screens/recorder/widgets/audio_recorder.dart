@@ -7,6 +7,7 @@ import 'package:audio_recorder/utils/app_logger.dart';
 import 'package:audio_recorder/widgets/blink_widget.dart';
 import 'package:audio_recorder/widgets/countdown_timer.dart';
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 
 class AudioRecorder extends StatefulWidget {
   final RecorderViewModel model;
@@ -17,7 +18,7 @@ class AudioRecorder extends StatefulWidget {
 }
 
 class _AudioRecorderState extends State<AudioRecorder>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   bool _isRecording = false;
   bool _isRecordingLockEnabled = false;
 
@@ -25,7 +26,7 @@ class _AudioRecorderState extends State<AudioRecorder>
 
   late final AnimationController _animationController = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 500),
+    duration: const Duration(milliseconds: 700),
   );
 
   late final Animation<double> _buttonScaleAnimation =
@@ -36,23 +37,41 @@ class _AudioRecorderState extends State<AudioRecorder>
     ),
   );
 
+  late final AnimationController _lockbarController = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 700),
+  );
+
   late final Animation<Offset> _verticalBarAnimation = Tween<Offset>(
     begin: Offset.zero,
-    end: const Offset(0.0, -1.2),
+    end: const Offset(0.0, -1.1),
   ).animate(CurvedAnimation(
-    parent: _animationController,
+    parent: _lockbarController,
     curve: Curves.linear,
   ));
+
+  late final AnimationController _horizontalBarController = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 700),
+  );
 
   late final Animation<Offset> _horizontalBarAnimation = Tween<Offset>(
     end: Offset.zero,
     begin: const Offset(1.2, 0.0),
   ).animate(CurvedAnimation(
-    parent: _animationController,
+    parent: _horizontalBarController,
     curve: Curves.linear,
   ));
 
-  final ValueNotifier<double> _positionValueNotifier = ValueNotifier(0);
+  late final AnimationController _trashController = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 2500),
+  );
+
+  late final AnimationController _positionValueNotifier = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 2000),
+  );
 
   void _startRecording() async {
     if (_isRecording) return;
@@ -64,6 +83,8 @@ class _AudioRecorderState extends State<AudioRecorder>
     });
 
     _animationController.forward();
+    _lockbarController.forward();
+    _horizontalBarController.forward();
   }
 
   void _endRecording() {
@@ -81,7 +102,9 @@ class _AudioRecorderState extends State<AudioRecorder>
   void _deleteRecording(data) {
     AppLogger.print('delete....');
     _endRecording();
-    _positionValueNotifier.value = _screenWidth - Dimensions.micOffset;
+    _positionValueNotifier.forward();
+    _trashController.forward(from: 0);
+    _horizontalBarController.value = 0;
     widget.model.stopRecording(false);
   }
 
@@ -97,6 +120,8 @@ class _AudioRecorderState extends State<AudioRecorder>
 
     widget.model.stopRecording(true);
     _endRecording();
+    _lockbarController.reverse();
+    _horizontalBarController.reverse();
   }
 
   void _enableRecordingLock(data) {
@@ -114,8 +139,20 @@ class _AudioRecorderState extends State<AudioRecorder>
         _animationController.isAnimating ||
         (_positionValueNotifier.value - dx).abs() < 0.5) return;
 
-    AppLogger.print(dx);
-    _positionValueNotifier.value = dx;
+    // AppLogger.print('dx $dx');
+    _positionValueNotifier.value = dx / _screenWidth;
+    if (_positionValueNotifier.value < 0.75 &&
+        _lockbarController.value > 0.0 &&
+        !_lockbarController.isAnimating) {
+      _lockbarController.reverse();
+    }
+
+    if (_positionValueNotifier.value >= 0.75 &&
+        _lockbarController.value < 1.0 &&
+        !_lockbarController.isAnimating) {
+      _lockbarController.forward();
+    }
+
     if (dx < _screenWidth * 0.6) {
       _deleteRecording(null);
     }
@@ -132,17 +169,20 @@ class _AudioRecorderState extends State<AudioRecorder>
     return Padding(
       padding: const EdgeInsets.all(Dimensions.smallMargin),
       child: SizedBox(
-        height: Dimensions.barHeight * 2,
-        child: ValueListenableBuilder<double>(
-          valueListenable: _positionValueNotifier,
-          builder: (context, _micPos, child) {
-            AppLogger.print(_micPos);
+        height: Dimensions.barHeight + Dimensions.messageBox,
+        child: AnimatedBuilder(
+          animation: _positionValueNotifier,
+          builder: (context, child) {
+            final val = _positionValueNotifier.value;
+            final _micPos =
+                min(val * _screenWidth, _screenWidth - Dimensions.micOffset);
+            AppLogger.print('$_micPos $val');
+
             return Stack(
               clipBehavior: Clip.none,
               children: [
                 Positioned(
-                  bottom: -(Dimensions.barHeight + Dimensions.mediumMargin) +
-                      (_micPos - _screenWidth),
+                  bottom: -(Dimensions.barHeight + Dimensions.mediumMargin),
                   right: 0,
                   child: _lockBar(),
                 ),
@@ -163,7 +203,9 @@ class _AudioRecorderState extends State<AudioRecorder>
                         ),
                       Padding(
                         padding: EdgeInsets.only(
-                          left: _isRecording ? _micPos - Dimensions.mediumMargin : 0,
+                          left: _isRecording
+                              ? _micPos - Dimensions.mediumMargin
+                              : 0,
                         ),
                         child: GestureDetector(
                           onLongPress: _startRecording,
@@ -175,9 +217,21 @@ class _AudioRecorderState extends State<AudioRecorder>
                     ],
                   ),
                 ),
+                Positioned(
+                  left: 0,
+                  bottom: 0,
+                  child: child!,
+                ),
               ],
             );
           },
+          child: Lottie.asset(
+            'assets/delete-animation.json',
+            width: 70,
+            height: 70,
+            repeat: false,
+            controller: _trashController,
+          ),
         ),
       ),
     );
@@ -237,41 +291,50 @@ class _AudioRecorderState extends State<AudioRecorder>
   Widget _lockBar() {
     return SlideTransition(
       position: _verticalBarAnimation,
-      child: Container(
-        margin: const EdgeInsets.all(Dimensions.smallMargin),
-        height: Dimensions.barHeight,
-        width: Dimensions.chatBox,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(Dimensions.borderRadius),
-          color: AppColors.grey,
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            DragTarget<bool>(
-              builder: (context, accepted, rejected) {
-                return const Padding(
-                  padding: EdgeInsets.all(Dimensions.bigPadding),
-                  child: Icon(Icons.lock),
-                );
-              },
-              hitTestBehavior: HitTestBehavior.opaque,
-              onAccept: _enableRecordingLock,
-            ),
-            const Icon(
-              Icons.keyboard_arrow_up,
-              size: 24,
-            ),
-            const Icon(
-              Icons.keyboard_arrow_up,
-              size: 24,
-            ),
-            const Icon(
-              Icons.keyboard_arrow_up,
-              size: 24,
-            ),
-          ],
+      child: AnimatedBuilder(
+        animation: _verticalBarAnimation,
+        builder: (context, child) {
+          return Opacity(
+            opacity: _lockbarController.value,
+            child: child,
+          );
+        },
+        child: Container(
+          margin: const EdgeInsets.all(Dimensions.smallMargin),
+          height: Dimensions.barHeight,
+          width: Dimensions.chatBox,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(Dimensions.borderRadius),
+            color: AppColors.grey,
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              DragTarget<bool>(
+                builder: (context, accepted, rejected) {
+                  return const Padding(
+                    padding: EdgeInsets.all(Dimensions.bigPadding),
+                    child: Icon(Icons.lock),
+                  );
+                },
+                hitTestBehavior: HitTestBehavior.opaque,
+                onAccept: _enableRecordingLock,
+              ),
+              const Icon(
+                Icons.keyboard_arrow_up,
+                size: 24,
+              ),
+              const Icon(
+                Icons.keyboard_arrow_up,
+                size: 24,
+              ),
+              const Icon(
+                Icons.keyboard_arrow_up,
+                size: 24,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -311,6 +374,8 @@ class _AudioRecorderState extends State<AudioRecorder>
   @override
   void dispose() {
     _animationController.dispose();
+    _lockbarController.dispose();
+    _positionValueNotifier.dispose();
     super.dispose();
   }
 }

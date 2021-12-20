@@ -30,7 +30,9 @@ class RecorderViewModel extends BaseViewModel {
 
       if (directory.existsSync()) {
         final files = directory.listSync();
+        int i = 0;
         for (FileSystemEntity it in files) {
+          if (i++ > 5) break;
           final duration = await _player.setFilePath(it.uri.path);
           audioFiles.add(AudioModel(
             path: it.uri.path,

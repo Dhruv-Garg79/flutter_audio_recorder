@@ -13,6 +13,6 @@ class Dimensions {
   static const double micOffset = 54.0;
   static const double chatBox = 54.0;
   static const double messageBox = 64.0 + smallMargin;
-  static const double barHeight = 170;
+  static const double barHeight = 200;
   static const double iconSize = 40.0;
 }
