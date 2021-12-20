@@ -39,12 +39,12 @@ class _AudioRecorderState extends State<AudioRecorder>
 
   late final AnimationController _lockbarController = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 700),
+    duration: const Duration(milliseconds: 500),
   );
 
   late final Animation<Offset> _verticalBarAnimation = Tween<Offset>(
     begin: Offset.zero,
-    end: const Offset(0.0, -1.1),
+    end: const Offset(0.0, -1.0),
   ).animate(CurvedAnimation(
     parent: _lockbarController,
     curve: Curves.linear,
@@ -65,7 +65,7 @@ class _AudioRecorderState extends State<AudioRecorder>
 
   late final AnimationController _trashController = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 2500),
+    duration: const Duration(milliseconds: 1800),
   );
 
   late final AnimationController _positionValueNotifier = AnimationController(
@@ -219,7 +219,7 @@ class _AudioRecorderState extends State<AudioRecorder>
                 ),
                 Positioned(
                   left: 0,
-                  bottom: 0,
+                  bottom: 8,
                   child: child!,
                 ),
               ],
@@ -227,10 +227,11 @@ class _AudioRecorderState extends State<AudioRecorder>
           },
           child: Lottie.asset(
             'assets/delete-animation.json',
-            width: 70,
-            height: 70,
+            width: 48,
+            height: 48,
             repeat: false,
             controller: _trashController,
+            fit: BoxFit.cover,
           ),
         ),
       ),

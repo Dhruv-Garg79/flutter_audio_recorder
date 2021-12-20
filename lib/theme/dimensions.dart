@@ -10,7 +10,7 @@ class Dimensions {
   static const double smallRadius = 24.0;
 
   static const double micSize = 28.0;
-  static const double micOffset = 54.0;
+  static const double micOffset = 56.0;
   static const double chatBox = 54.0;
   static const double messageBox = 64.0 + smallMargin;
   static const double barHeight = 200;

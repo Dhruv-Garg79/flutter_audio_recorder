@@ -9,6 +9,6 @@ class SplashViewModel extends BaseViewModel {
   Future<void> initialize() async {
     await Future.delayed(const Duration(seconds: 1));
 
-    _navigator.navigateTo(Routes.recorderView);
+    _navigator.replaceWith(Routes.recorderView);
   }
 }
